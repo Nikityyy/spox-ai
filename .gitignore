@@ -1,0 +1,38 @@
+# SpoX+ AI Git Exclusions
+
+# Environment configuration
+.env
+.env.*
+!.env.example
+httpdocs/config/.env.php
+
+# Dependency Managers
+node_modules/
+vendor/
+.npm
+.yarn
+
+# User uploads (Exclude everything except .htaccess)
+httpdocs/uploads/*
+!httpdocs/uploads/.htaccess
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+.project
+.settings/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and Temporaries
+*.log
+*.tmp
+*.bak
+.phpunit.result.cache

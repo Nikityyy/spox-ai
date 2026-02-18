@@ -1,0 +1,20 @@
+# API directory — allow PHP execution, deny everything else
+<IfModule mod_options.c>
+    Options -Indexes
+</IfModule>
+
+# Deny all files by default
+<RequireAll>
+    Require all denied
+</RequireAll>
+
+# Allow only PHP files
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
+# Security headers for API responses
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+</IfModule>

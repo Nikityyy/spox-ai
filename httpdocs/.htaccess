@@ -1,0 +1,20 @@
+RewriteEngine On
+RewriteBase /
+
+# 1. Don't rewrite if it's already in public/
+# But if a user type /public/ manually, redirect them to the root
+RewriteCond %{THE_REQUEST} /public/([^\s?]*) [NC]
+RewriteRule ^public/([^\s?]*) /%1 [L,R=301]
+
+RewriteCond %{REQUEST_URI} ^/public/
+RewriteRule ^ - [L]
+
+# 2. Don't rewrite API, Admin, or Docs (siblings of public)
+RewriteCond %{REQUEST_URI} ^/api/ [OR]
+RewriteCond %{REQUEST_URI} ^/docs/ [OR]
+RewriteCond %{REQUEST_URI} ^/uploads/
+RewriteRule ^ - [L]
+
+# 3. Rewrite everything else to public/
+# This makes spox.hak-steyr.at/ serve spox.hak-steyr.at/public/
+RewriteRule ^(.*)$ public/$1 [L]

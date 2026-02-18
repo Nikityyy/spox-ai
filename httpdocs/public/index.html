@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="SpoX+ AI – Dein KI-Assistent für das HAK Steyr Sport+ Programm. Stell Fragen zu Training, Ernährung, Sport-Events und mehr.">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://spox.hak-steyr.at/">
+  <meta property="og:title" content="SpoX+ AI">
+  <meta property="og:description"
+    content="SpoX+ AI – Dein KI-Assistent für das HAK Steyr Sport+ Programm. Stell Fragen zu Training, Ernährung, Sport-Events und mehr.">
+  <meta property="og:image" content="https://spox.hak-steyr.at/assets/facebook.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://spox.hak-steyr.at/">
+  <meta property="twitter:title" content="SpoX+ AI">
+  <meta property="twitter:description"
+    content="SpoX+ AI – Dein KI-Assistent für das HAK Steyr Sport+ Programm. Stell Fragen zu Training, Ernährung, Sport-Events und mehr.">
+  <meta property="twitter:image" content="https://spox.hak-steyr.at/assets/twitter.png">
+
+  <title>SpoX+ AI</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+
+  <!-- ─── App Shell ─────────────────────────────────────────────────────────── -->
+  <div id="app">
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <a href="/" class="sidebar-logo" id="logo-link">
+        <img src="/assets/favicon.svg" alt="SpoX+AI Logo">
+        <span>SpoX+ AI</span>
+      </a>
+
+      <div class="sidebar-nav">
+        <button class="sidebar-btn" id="btn-new-chat" title="Neuer Chat">
+          <i data-lucide="square-pen" style="width:16px; height:16px;"></i>
+          Neuer Chat
+        </button>
+        <button class="sidebar-btn" id="btn-search" title="Suche">
+          <i data-lucide="search" style="width:16px; height:16px;"></i>
+          Chats suchen
+        </button>
+      </div>
+
+      <!-- Search Input (hidden by default) -->
+      <div id="search-container" style="display:none; padding:4px 8px;">
+        <input type="text" id="search-input" class="search-input" placeholder="Chats durchsuchen…">
+      </div>
+
+      <div class="sidebar-scroll" id="sidebar-scroll">
+        <!-- Projects Section -->
+        <div class="sidebar-section">Projekte</div>
+        <div class="sidebar-nav">
+          <button class="sidebar-btn" id="btn-new-project">
+            <i data-lucide="plus" style="width:14px; height:14px;"></i>
+            Neues Projekt
+          </button>
+        </div>
+        <div id="projects-list"></div>
+
+        <!-- Your Chats Section -->
+        <div class="sidebar-section" style="margin-top:8px;">Deine Chats</div>
+        <div id="chats-list"></div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main">
+      <div id="upload-progress-container" class="upload-progress-container">
+        <div class="upload-progress-info">
+          <span id="upload-progress-filename">Datei wird hochgeladen...</span>
+          <span id="upload-progress-percent">0%</span>
+        </div>
+        <div class="upload-progress-bg">
+          <div id="upload-progress-fill" class="upload-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <header id="header">
+        <div class="header-title" id="header-title">SpoX+ AI</div>
+        <div class="header-actions" id="header-actions">
+          <button class="login-btn" id="login-btn" style="display:none;">Anmelden</button>
+          <button class="profile-btn" id="profile-btn" style="display:none;" title="Profil">N</button>
+          <!-- Profile Dropdown -->
+          <div class="profile-dropdown" id="profile-dropdown" style="display:none;">
+            <div class="profile-dropdown-header">
+              <div class="profile-dropdown-avatar" id="dd-avatar">N</div>
+              <div class="profile-dropdown-info">
+                <div class="profile-dropdown-name" id="dd-name">Name</div>
+              </div>
+            </div>
+            <div class="profile-dropdown-email" id="dd-email" style="display:none;">name@domain.com</div>
+            <button class="dropdown-item" id="dd-settings">
+              <i data-lucide="settings" style="width:14px; height:14px;"></i>
+              Einstellungen
+            </button>
+            <button class="dropdown-item" id="dd-export">
+              <i data-lucide="download" style="width:14px; height:14px;"></i>
+              Daten exportieren
+            </button>
+            <button class="dropdown-item danger" id="dd-logout">
+              <i data-lucide="log-out" style="width:14px; height:14px;"></i>
+              Abmelden
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Chat / Content Area -->
+      <div id="chat-area">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Input Bar -->
+      <div id="input-area">
+        <div id="upload-preview-bar" class="upload-preview-bar" style="display:none;"></div>
+        <div class="input-bar">
+          <button class="input-attach-btn" id="attach-btn" title="Datei anhängen" style="display:none;">
+            <i data-lucide="paperclip" style="width:18px; height:18px;"></i>
+          </button>
+          <textarea id="message-input" placeholder="Nachricht an SpoX+ AI senden" rows="1"></textarea>
+          <button class="send-btn" id="send-btn" disabled title="Senden">
+            <i data-lucide="arrow-up" style="width:16px; height:16px;"></i>
+          </button>
+        </div>
+        <!-- Hidden file input -->
+        <input type="file" id="file-input" style="display:none;" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.txt">
+      </div>
+
+      <!-- Footer -->
+      <div id="footer">
+        SpoX+ AI kann Fehler machen. Überprüfe wichtige Informationen.<br>
+        Entwickelt von <a href="https://nikityyy.github.io/" target="_blank"
+          style="color:var(--text-secondary);text-decoration:underline;">Nikita Berger</a>
+      </div>
+    </main>
+  </div>
+
+  <!-- ─── File Preview Modal ────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="file-preview-modal" style="display:none;">
+    <div class="preview-modal">
+      <div class="preview-modal-header">
+        <span id="preview-filename">Datei</span>
+        <button class="preview-close-btn" id="close-preview-btn">
+          <i data-lucide="x" style="width:20px; height:20px;"></i>
+        </button>
+      </div>
+      <div class="preview-modal-content" id="preview-content">
+        <!-- Content injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Login Modal ───────────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="login-modal" style="display:none;">
+    <div class="modal">
+      <img src="/assets/favicon.svg" alt="SpoX+ AI" class="modal-logo">
+      <h2>Willkommen bei</h2>
+      <h1>SpoX+ AI</h1>
+      <p>Melde dich an, um smartere Antworten zu erhalten und Dateien hochzuladen.</p>
+      <div class="modal-actions-v2">
+        <button class="modal-login-btn" id="modal-login-btn">Anmelden</button>
+        <div class="modal-or-v2">oder</div>
+        <div class="modal-guest-link" id="modal-guest-btn">Als Gast nutzen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Cookie Banner ─────────────────────────────────────────────────────── -->
+  <div id="cookie-banner" style="display:none;">
+    <span style="flex:1;">
+      <strong>Cookie-Hinweis:</strong> Diese Webseite verwendet ausschließlich funktionale Cookies (Login-Status, Theme,
+      lokale Chats). Keine Tracking-Cookies.
+      <a href="/docs/privacy.html" target="_blank">Datenschutzerklärung</a>
+    </span>
+    <button class="cookie-ok-btn" id="cookie-ok-btn">OK</button>
+  </div>
+
+  <div class="modal-overlay" id="new-project-modal" style="display:none;">
+    <div class="modal-v2">
+      <h2 class="modal-title-v2">Neues Projekt</h2>
+      <div class="modal-body-v2">
+        <input type="text" id="new-project-name" placeholder="Wie soll dein Projekt heißen?" class="modal-input-v2">
+      </div>
+      <div class="modal-footer-v2">
+        <button class="modal-cancel-btn-v2" id="cancel-project-btn">Abbrechen</button>
+        <button class="modal-submit-btn-v2" id="create-project-btn">Erstellen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── JS Modules ────────────────────────────────────────────────────────── -->
+  <script src="/js/storage.js"></script>
+  <script src="/js/sync.js"></script>
+  <script src="/js/profile.js"></script>
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/projects.js"></script>
+  <script src="/js/app.js"></script>
+
+  <!-- Marked (Markdown Parser) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- KaTeX (LaTeX Renderer) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+
+</html>

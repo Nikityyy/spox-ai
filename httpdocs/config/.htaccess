@@ -1,0 +1,3 @@
+# Deny all public access to this folder
+# Contains sensitive configuration files
+Require all denied

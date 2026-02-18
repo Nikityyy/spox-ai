@@ -1,0 +1,68 @@
+# SpoX+AI — Public Webroot .htaccess
+# Security headers, HTTPS redirect, routing
+
+# Disable GZIP for streaming reliability
+<IfModule mod_env.c>
+    SetEnv no-gzip 1
+    SetEnv dont-vary 1
+    SetEnv proxy-flushall 1
+</IfModule>
+<IfModule mod_deflate.c>
+    SetEnvIfNoCase Request_URI "\.php$" no-gzip dont-vary
+</IfModule>
+
+# Disable mod_pagespeed if present
+<IfModule mod_pagespeed.c>
+    ModPagespeed off
+</IfModule>
+
+# ─── HTTPS Redirect ──────────────────────────────────────────────────────────
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ─── www redirect ────────────────────────────────────────────────────────────
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+# ─── SPA Routing — serve index.html for all non-file requests ────────────────
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/docs/
+RewriteRule ^ /index.html [L]
+
+# ─── Security Headers ────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "0"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; frame-ancestors 'none';"
+</IfModule>
+
+# ─── Protect sensitive files ─────────────────────────────────────────────────
+<FilesMatch "\.(env|php|sql|log|md|sh|bak)$">
+    <RequireAll>
+        Require all denied
+    </RequireAll>
+</FilesMatch>
+
+# ─── Allow PHP files (API & Admin) ──────────────────────────────────────────
+# Previous block removed as it blocked execution in subdirectories on shared hosting
+
+# ─── SPA Routing & Directory Index ───────────────────────────────────────────
+DirectoryIndex index.html
+
+# ─── Cache static assets ─────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# ─── Disable directory listing ───────────────────────────────────────────────
+Options -Indexes
