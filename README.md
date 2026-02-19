@@ -3,7 +3,7 @@
 
 **BHAK & BHAS Steyr - Der intelligente Begleiter für die HAK Sport+**
 
-![SpoX+ AI](httpdocs/public/assets/facebook.png)
+![SpoX+ AI](httpdocs/public/assets/twitter.png)
 
 SpoX+ AI ist eine moderne, KI-gestützte Web-App (Powered by Google Gemini), die im Rahmen einer **Diplomarbeit** an der **BHAK & BHAS Steyr** speziell für Schüler:innen der HAK Sport+ entwickelt wurde. Sie unterstützt bei der Matura-Vorbereitung, Lernorganisation, Training und Ernährung.
 
