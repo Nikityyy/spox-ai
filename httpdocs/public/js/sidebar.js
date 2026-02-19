@@ -71,16 +71,22 @@ const Sidebar = {
             content.style.cursor = 'pointer';
 
             content.innerHTML = `
-                <i data-lucide="chevron-down" class="project-chevron" style="width:14px; height:14px; margin-left:12px; flex-shrink:0;"></i>
+                <i data-lucide="chevron-down" class="project-chevron" id="chevron-${project.uuid}" style="width:14px; height:14px; margin-left:12px; flex-shrink:0; cursor:pointer;"></i>
                 <i data-lucide="folder" style="width:14px; height:14px; flex-shrink:0; color:var(--text-secondary);"></i>
-                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(project.name)}</span>
+                <span class="project-name-text" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(project.name)}</span>
             `;
 
-            // Toggle collapse when clicking the project header (chevron or name)
+            // Separate Click Logic:
+            // 1. Chevron only toggles
+            content.querySelector(`#chevron-${project.uuid}`).addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleProject(project.uuid);
+            });
+
+            // 2. Folder and name navigate
             content.addEventListener('click', (e) => {
                 e.preventDefault();
-                this.toggleProject(project.uuid);
-                // Also navigate to project if not already there
                 if (this.activeProjectId !== project.uuid) {
                     App.navigate('project', { uuid: project.uuid });
                 }

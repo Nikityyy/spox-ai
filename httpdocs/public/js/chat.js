@@ -142,8 +142,9 @@ const Chat = {
     },
 
     renderEditableTitle(title, uuid, projectName = null) {
+        const displayTitle = title.length > 20 ? title.substring(0, 20) + '...' : title;
         let html = `
-      <span id="chat-title-text">${escapeHtml(title)}</span>
+      <span id="chat-title-text" title="${escapeHtml(title)}">${escapeHtml(displayTitle)}</span>
       <button class="header-title-edit" id="edit-title-btn" title="Titel bearbeiten">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -174,7 +175,9 @@ const Chat = {
     },
 
     async updateTitle(uuid, title) {
-        document.getElementById('chat-title-text').textContent = title;
+        const displayTitle = title.length > 20 ? title.substring(0, 20) + '...' : title;
+        document.getElementById('chat-title-text').textContent = displayTitle;
+        document.getElementById('chat-title-text').title = title;
         Sidebar.updateChatTitle(uuid, title);
 
         if (Profile.user) {
@@ -627,7 +630,8 @@ const Chat = {
         });
 
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // Enter sends only on desktop (width > 768px)
+            if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
                 e.preventDefault();
                 this.sendMessage();
             }

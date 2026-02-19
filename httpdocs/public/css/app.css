@@ -33,6 +33,14 @@ body {
   font-size: 14px;
   line-height: 1.5;
   overflow: hidden;
+  /* Fix for iOS zoom: all inputs must be at least 16px */
+  -webkit-text-size-adjust: 100%;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px !important;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────── */
@@ -840,16 +848,25 @@ body {
 .input-bar {
   display: flex;
   align-items: flex-end;
-  /* Keep buttons at the bottom */
+  /* Back to flex-end to keep buttons at bottom on multi-line */
   gap: 12px;
   background: #252525;
   border: 1px solid #333;
   border-radius: 16px;
-  padding: 10px 14px;
-  max-width: 760px;
+  padding: 8px 12px;
+  max-width: 100%;
+  width: 760px;
   margin: 0 auto;
   transition: all 0.2s ease;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.input-bar .input-attach-btn {
+  margin-bottom: 3px;
+}
+
+.input-bar .send-btn {
+  margin-bottom: 4px;
 }
 
 .input-bar:focus-within {
@@ -863,14 +880,14 @@ body {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
-  margin-bottom: -2px;
-  /* Slight adjustment for alignment */
 }
 
 .input-attach-btn:hover {
@@ -881,16 +898,12 @@ body {
 #message-input {
   flex: 1;
   background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-  resize: none;
   min-height: 24px;
-  max-height: 120px;
+  max-height: 200px;
   line-height: 1.5;
   font-family: inherit;
-  padding: 2px 0;
+  margin-bottom: 6px;
+  outline: none !important;
 }
 
 /* ─── Modern Modal V2 ───────────────────────────────────────────────────── */
@@ -2004,13 +2017,20 @@ body {
 
   /* Input area adjustments */
   .input-bar {
-    margin: 8px 12px 12px;
-    padding: 4px 8px;
+    margin: 8px 0 12px;
+    padding: 6px 10px;
+    gap: 8px;
+    width: 100%;
   }
 
   #message-input {
-    font-size: 14px;
-    padding: 8px 0;
+    font-size: 16px !important;
+    margin-bottom: 4px;
+  }
+
+  .input-bar .input-attach-btn,
+  .input-bar .send-btn {
+    margin-bottom: 0;
   }
 
   .input-actions {
@@ -2044,6 +2064,35 @@ body {
     margin-bottom: 12px;
   }
 
+  /* Make suggestion cards scrollable horizontally on mobile */
+  .suggestions-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    overflow-x: auto;
+    width: 100vw;
+    padding: 10px 20px;
+    gap: 12px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  }
+
+  .suggestions-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .suggestion-card {
+    flex: 0 0 240px;
+    margin-bottom: 0;
+  }
+
+  .home-hero {
+    overflow: hidden;
+    height: 100%;
+    justify-content: center !important;
+    padding: 20px 0 !important;
+  }
+
   .home-hero-subtitle {
     font-size: 14px;
     margin-bottom: 32px;
@@ -2067,10 +2116,21 @@ body {
 
   /* Project View */
   .project-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
     padding: 20px 16px;
+  }
+
+  .project-header h1 {
+    margin: 0;
+    flex: 1;
+  }
+
+  .project-header .add-files-btn {
+    width: 100%;
+    margin-top: 8px;
   }
 
   .project-actions {
