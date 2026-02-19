@@ -9,6 +9,7 @@ const Chat = {
     messages: [],
     attachedFiles: [], // Local state for files waiting to be sent
     isStreaming: false,
+    abortController: null,
 
     SUGGESTIONS: [
         {
@@ -36,14 +37,36 @@ const Chat = {
     /**
      * Show empty state (home / new chat).
      */
-    showHome() {
+    showHome(projectUuid = null) {
         this.currentUuid = null;
-        this.currentProjectId = null;
+        // Only override if projectUuid is provided, otherwise keep current state
+        if (projectUuid !== null) {
+            this.currentProjectId = projectUuid;
+        }
         this.messages = [];
         this.attachedFiles = [];
         this.renderUploadPreviews();
         Sidebar.clearActive();
-        document.getElementById('header-title').textContent = 'SpoX+ AI';
+
+        // Default hero content
+        let heroTitle = 'Wie kann ich dich heute bei <span class="text-styled">Sport+</span> unterstützen?';
+        let heroSubtitle = 'Dein digitaler Coach für Training, Ernährung und die Matura-Vorbereitung.';
+        let headerTitle = 'SpoX+ AI';
+
+        // Project-specific hero content
+        if (this.currentProjectId) {
+            const p = Sidebar.projects.find(p => p.uuid === this.currentProjectId);
+            if (p) {
+                heroTitle = `Wie kann ich dich heute bei <span class="text-styled">${escapeHtml(p.name)}</span> unterstützen?`;
+                heroSubtitle = 'Alle Dateien und Chats in diesem Projekt helfen mir, dir noch präziser zu antworten.';
+                headerTitle = `
+                    <i data-lucide="folder" style="width:18px;height:18px;margin-left:8px;color:var(--text-secondary);"></i>
+                    ${escapeHtml(p.name)}
+                `;
+            }
+        }
+
+        document.getElementById('header-title').innerHTML = headerTitle;
 
         const area = document.getElementById('chat-area');
         area.innerHTML = `
@@ -51,8 +74,8 @@ const Chat = {
         <div class="home-logo-container">
           <img src="/assets/favicon.svg" alt="Sport+ AI" class="home-hero-logo">
         </div>
-        <h1 class="home-hero-title">Wie kann ich dich heute beim <span class="text-gradient">Sport+</span> unterstützen?</h1>
-        <p class="home-hero-subtitle">Dein digitaler Coach für Training, Ernährung und die Matura-Vorbereitung.</p>
+        <h1 class="home-hero-title">${heroTitle}</h1>
+        <p class="home-hero-subtitle">${heroSubtitle}</p>
 
         <div class="suggestions-grid" id="suggestions-grid"></div>
       </div>
@@ -81,20 +104,6 @@ const Chat = {
             grid.appendChild(card);
         });
         if (window.lucide) lucide.createIcons();
-
-        // If we are in a project context, update header immediately
-        if (this.currentProjectId) {
-            Projects.loadProject(this.currentProjectId).then(() => {
-                const p = Projects.currentProject;
-                if (p) {
-                    document.getElementById('header-title').innerHTML = `
-                        <i data-lucide="folder" style="width:18px;height:18px;margin-left:8px;color:var(--text-secondary);"></i>
-                        ${escapeHtml(p.name)}
-                    `;
-                    if (window.lucide) lucide.createIcons();
-                }
-            });
-        }
     },
 
     /**
@@ -115,7 +124,7 @@ const Chat = {
                 if (!res.ok) { this.showHome(); return; }
                 const data = await res.json();
                 chatData = data.chat;
-                this.currentProjectId = chatData.project_id || null;
+                this.currentProjectId = chatData.project_uuid || null;
             } catch { this.showHome(); return; }
         } else {
             // Guest: load from localStorage
@@ -125,14 +134,15 @@ const Chat = {
         }
 
         this.messages = chatData.messages || [];
-        document.getElementById('header-title').innerHTML = this.renderEditableTitle(chatData.title || 'Neuer Chat', uuid);
+        const title = chatData.title || 'Neuer Chat';
+        document.getElementById('header-title').innerHTML = this.renderEditableTitle(title, uuid, chatData.project_name);
         this.bindTitleEdit(uuid);
 
         this.renderMessages();
     },
 
-    renderEditableTitle(title, uuid) {
-        return `
+    renderEditableTitle(title, uuid, projectName = null) {
+        let html = `
       <span id="chat-title-text">${escapeHtml(title)}</span>
       <button class="header-title-edit" id="edit-title-btn" title="Titel bearbeiten">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -141,12 +151,22 @@ const Chat = {
         </svg>
       </button>
     `;
+
+        if (projectName) {
+            html += `
+                <div class="project-badge">
+                    <i data-lucide="folder" style="width:12px; height:12px;"></i>
+                    ${escapeHtml(projectName)}
+                </div>
+            `;
+        }
+        return html;
     },
 
     bindTitleEdit(uuid) {
-        document.getElementById('edit-title-btn')?.addEventListener('click', () => {
+        document.getElementById('edit-title-btn')?.addEventListener('click', async () => {
             const current = document.getElementById('chat-title-text')?.textContent || '';
-            const newTitle = prompt('Chat-Titel bearbeiten:', current);
+            const newTitle = await UI.prompt('Chat-Titel bearbeiten', 'Neuer Titel…', current);
             if (newTitle && newTitle.trim()) {
                 this.updateTitle(uuid, newTitle.trim());
             }
@@ -310,6 +330,7 @@ const Chat = {
             input.style.height = 'auto';
         }
         document.getElementById('send-btn').disabled = true;
+        this.updateSendButtonState(true);
 
         // Reset attached files after sending
         const fileData = [...this.attachedFiles];
@@ -324,7 +345,11 @@ const Chat = {
             if (!Profile.user) {
                 Storage.upsertChat(newChat);
             }
-            Sidebar.addChat({ uuid: this.currentUuid, title: newChat.title });
+            Sidebar.addChat({
+                uuid: this.currentUuid,
+                title: newChat.title,
+                project_uuid: this.currentProjectId
+            });
             Sidebar.setActiveChat(this.currentUuid);
 
             // Update header
@@ -359,6 +384,7 @@ const Chat = {
 
         // Stream response
         this.isStreaming = true;
+        this.abortController = new AbortController();
         let botContent = '';
         let botBubble = null;
 
@@ -378,10 +404,13 @@ const Chat = {
                     history,
                     files: fileData.map(f => f.filename), // Send filenames to API
                 }),
+                signal: this.abortController.signal
             });
 
             if (!res.ok) {
-                throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                UI.toast(data.message || 'Verbindungsfehler', 'error');
+                return;
             }
 
             const reader = res.body.getReader();
@@ -418,7 +447,10 @@ const Chat = {
 
                             botContent += event.text;
                             botBubble.innerHTML = this.renderMarkdown(botContent);
-                            this.renderMath(botBubble);
+                            // Throttled Math: only render if closing tag detected or message is getting long
+                            if (event.text.includes('$') || event.text.includes(']') || event.text.includes(')')) {
+                                this.renderMath(botBubble);
+                            }
                             this.scrollToBottom();
 
                         } else if (event.type === 'error') {
@@ -437,8 +469,9 @@ const Chat = {
                             if (event.title) {
                                 Sidebar.updateChatTitle(this.currentUuid, event.title);
                             }
-                            // Add action buttons to bot message
+                            // Final math render on done
                             if (botBubble) {
+                                this.renderMath(botBubble);
                                 const actions = document.createElement('div');
                                 actions.className = 'message-actions';
                                 actions.innerHTML = `
@@ -492,8 +525,32 @@ const Chat = {
             if (window.lucide) lucide.createIcons();
         } finally {
             this.isStreaming = false;
+            this.abortController = null;
+            this.updateSendButtonState(false);
             const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = !document.getElementById('message-input').value.trim();
+        }
+    },
+
+    updateSendButtonState(isStreaming) {
+        const btn = document.getElementById('send-btn');
+        if (isStreaming) {
+            btn.innerHTML = '<i data-lucide="square" style="width:16px; height:16px; fill: currentColor;"></i>';
+            btn.title = 'Stoppen';
+            btn.disabled = false;
+            btn.classList.add('stop-mode');
+        } else {
+            btn.innerHTML = '<i data-lucide="arrow-up" style="width:16px; height:16px;"></i>';
+            btn.title = 'Senden';
+            btn.classList.remove('stop-mode');
+        }
+        if (window.lucide) lucide.createIcons();
+    },
+
+    stopGeneration() {
+        if (this.abortController) {
+            this.abortController.abort();
+            this.isStreaming = false;
         }
     },
 
@@ -576,18 +633,25 @@ const Chat = {
             }
         });
 
-        sendBtn.addEventListener('click', () => this.sendMessage());
+        sendBtn.addEventListener('click', () => {
+            if (this.isStreaming) {
+                this.stopGeneration();
+            } else {
+                this.sendMessage();
+            }
+        });
 
         // File attachment
         document.getElementById('attach-btn').addEventListener('click', () => {
-            document.getElementById('file-input').click();
-        });
-
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            await this.uploadFile(file);
-            e.target.value = '';
+            const fileInput = document.getElementById('file-input');
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                await this.uploadFile(file);
+                fileInput.value = '';
+                fileInput.onchange = null;
+            };
+            fileInput.click();
         });
     },
 
@@ -608,7 +672,16 @@ const Chat = {
         percent.textContent = '0%';
 
         const formData = new FormData();
-        formData.append('file', file);
+
+        let fileToUpload = file;
+        if (file.type.startsWith('image/')) {
+            try {
+                fileToUpload = await this.compressImage(file);
+            } catch (e) {
+                console.warn('Compression failed, using original', e);
+            }
+        }
+        formData.append('file', fileToUpload);
 
         // Use override or current state
         const pUuid = overrideProjectUuid || this.currentProjectId;
@@ -641,18 +714,18 @@ const Chat = {
                         }
                         resolve(data.file);
                     } else {
-                        alert('Upload fehlgeschlagen: ' + (data.message || 'Fehler'));
+                        UI.alert('Upload fehlgeschlagen', data.message || 'Ein unbekannter Fehler ist aufgetreten.');
                         reject();
                     }
                 } else {
-                    alert('Upload-Fehler.');
+                    UI.toast('Upload-Fehler', 'error');
                     reject();
                 }
             };
 
             xhr.onerror = () => {
                 container.style.display = 'none';
-                alert('Upload-Fehler.');
+                UI.toast('Upload-Fehler', 'error');
                 reject();
             };
 
@@ -781,6 +854,49 @@ const Chat = {
                 throwOnError: false
             });
         }
+    },
+
+    /**
+     * Client-side image compression.
+     */
+    async compressImage(file, maxWidth = 512, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            reject(new Error('Canvas blob failed'));
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = (err) => reject(err);
+            };
+            reader.onerror = (err) => reject(err);
+        });
     },
 };
 

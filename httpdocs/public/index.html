@@ -37,6 +37,7 @@
   <div id="app">
 
     <!-- Sidebar -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
     <aside id="sidebar">
       <a href="/" class="sidebar-logo" id="logo-link">
         <img src="/assets/favicon.svg" alt="SpoX+AI Logo">
@@ -78,19 +79,14 @@
 
     <!-- Main Content -->
     <main id="main">
-      <div id="upload-progress-container" class="upload-progress-container">
-        <div class="upload-progress-info">
-          <span id="upload-progress-filename">Datei wird hochgeladen...</span>
-          <span id="upload-progress-percent">0%</span>
-        </div>
-        <div class="upload-progress-bg">
-          <div id="upload-progress-fill" class="upload-progress-fill"></div>
-        </div>
-      </div>
-
       <!-- Header -->
       <header id="header">
-        <div class="header-title" id="header-title">SpoX+ AI</div>
+        <div class="header-left">
+          <button id="mobile-sidebar-toggle" class="mobile-only-btn">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-title" id="header-title">SpoX+ AI</div>
+        </div>
         <div class="header-actions" id="header-actions">
           <button class="login-btn" id="login-btn" style="display:none;">Anmelden</button>
           <button class="profile-btn" id="profile-btn" style="display:none;" title="Profil">N</button>
@@ -125,6 +121,15 @@
       </div>
 
       <!-- Input Bar -->
+      <div id="upload-progress-container" class="upload-progress-container" style="margin-bottom: 8px;">
+        <div class="upload-progress-info">
+          <span id="upload-progress-filename">Datei wird hochgeladen...</span>
+          <span id="upload-progress-percent">0%</span>
+        </div>
+        <div class="upload-progress-bg">
+          <div id="upload-progress-fill" class="upload-progress-fill"></div>
+        </div>
+      </div>
       <div id="input-area">
         <div id="upload-preview-bar" class="upload-preview-bar" style="display:none;"></div>
         <div class="input-bar">
@@ -142,8 +147,12 @@
 
       <!-- Footer -->
       <div id="footer">
-        SpoX+ AI kann Fehler machen. Überprüfe wichtige Informationen.<br>
-        Entwickelt von <a href="https://nikityyy.github.io/" target="_blank"
+        <div class="footer-links">
+          <a href="/docs/privacy.html" target="_blank">Datenschutz</a> •
+          <a href="/docs/cookies.html" target="_blank">Cookies</a> •
+          <a href="/docs/imprint.html" target="_blank">Impressum</a>
+        </div>
+        Developed by <a href="https://nikityyy.github.io/" target="_blank"
           style="color:var(--text-secondary);text-decoration:underline;">Nikita Berger</a>
       </div>
     </main>
@@ -179,15 +188,7 @@
     </div>
   </div>
 
-  <!-- ─── Cookie Banner ─────────────────────────────────────────────────────── -->
-  <div id="cookie-banner" style="display:none;">
-    <span style="flex:1;">
-      <strong>Cookie-Hinweis:</strong> Diese Webseite verwendet ausschließlich funktionale Cookies (Login-Status, Theme,
-      lokale Chats). Keine Tracking-Cookies.
-      <a href="/docs/privacy.html" target="_blank">Datenschutzerklärung</a>
-    </span>
-    <button class="cookie-ok-btn" id="cookie-ok-btn">OK</button>
-  </div>
+
 
   <div class="modal-overlay" id="new-project-modal" style="display:none;">
     <div class="modal-v2">
@@ -202,9 +203,38 @@
     </div>
   </div>
 
+  <!-- ─── Custom UI System (v3) ────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="custom-modal-v3" style="display:none; z-index: 2000;">
+    <div class="modal-v3">
+      <h2 id="custom-modal-title">Bestätigen</h2>
+      <p id="custom-modal-text">Möchtest du das wirklich tun?</p>
+      <div class="modal-footer-v3">
+        <button class="modal-cancel-btn-v3" id="custom-modal-cancel">Abbrechen</button>
+        <button class="modal-submit-btn-v3" id="custom-modal-submit">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="custom-prompt-modal" style="display:none; z-index: 2000;">
+    <div class="modal-v3">
+      <h2 id="prompt-modal-title">Eingabe</h2>
+      <div style="margin-top: 16px; margin-bottom: 24px;">
+        <input type="text" id="prompt-modal-input" class="modal-input-v2" style="width: 100%;"
+          placeholder="Text eingeben…">
+      </div>
+      <div class="modal-footer-v3">
+        <button class="modal-cancel-btn-v3" id="prompt-modal-cancel">Abbrechen</button>
+        <button class="modal-submit-btn-v3" id="prompt-modal-submit">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
   <!-- ─── JS Modules ────────────────────────────────────────────────────────── -->
   <script src="/js/storage.js"></script>
   <script src="/js/sync.js"></script>
+  <script src="/js/ui.js"></script>
   <script src="/js/profile.js"></script>
   <script src="/js/sidebar.js"></script>
   <script src="/js/chat.js"></script>

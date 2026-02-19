@@ -5,8 +5,6 @@
 
 const App = {
   async init() {
-    // Cookie consent
-    this.initCookieBanner();
 
     // Initialize modules
     await Profile.init();
@@ -93,8 +91,6 @@ const App = {
           return;
         }
         Projects.loadProject(params.uuid);
-        // Hide input bar for project dashboard view
-        document.getElementById('input-area').style.display = 'none';
 
         if (updateHistory) {
           history.pushState({}, '', url);
@@ -177,6 +173,15 @@ const App = {
         </div>
         <div class="settings-item">
           <div>
+            <div>Cookie-Richtlinie</div>
+            <div class="settings-item-label">Informationen zu Cookies & Speicher</div>
+          </div>
+          <a href="/docs/cookies.html" target="_blank" style="text-decoration:none;">
+            <button class="add-files-btn">Öffnen</button>
+          </a>
+        </div>
+        <div class="settings-item">
+          <div>
             <div>Impressum</div>
             <div class="settings-item-label">Rechtliche Informationen</div>
           </div>
@@ -203,8 +208,8 @@ const App = {
 
     // Delete account
     document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
-      if (!confirm('Bist du sicher? Alle deine Daten werden unwiderruflich gelöscht.')) return;
-      if (!confirm('Letzte Bestätigung: Konto wirklich löschen?')) return;
+      if (!await UI.confirm('Konto löschen', 'Bist du sicher? Alle deine Daten werden unwiderruflich gelöscht.')) return;
+      if (!await UI.confirm('Letzte Bestätigung', 'Soll dein Konto wirklich gelöscht werden?')) return;
 
       try {
         const res = await fetch('/api/delete_account.php', {
@@ -213,37 +218,17 @@ const App = {
         });
         const data = await res.json();
         if (data.success) {
-          alert('Dein Konto wurde gelöscht.');
+          await UI.alert('Erfolg', 'Dein Konto wurde gelöscht.');
           window.location.reload();
         } else {
-          alert('Fehler beim Löschen: ' + (data.message || 'Unbekannter Fehler'));
+          UI.alert('Fehler', data.message || 'Unbekannter Fehler');
         }
       } catch {
-        alert('Verbindungsfehler.');
+        UI.toast('Verbindungsfehler', 'error');
       }
     });
   },
 
-  initCookieBanner() {
-    if (localStorage.getItem('spoxai_consent') === '1') return;
-
-    const banner = document.getElementById('cookie-banner');
-    banner.style.display = 'flex';
-
-    document.getElementById('cookie-ok-btn').addEventListener('click', async () => {
-      banner.style.display = 'none';
-      localStorage.setItem('spoxai_consent', '1');
-
-      // Store consent server-side
-      try {
-        await fetch('/api/consent.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ functional: true }),
-        });
-      } catch { }
-    });
-  },
 };
 
 // Boot

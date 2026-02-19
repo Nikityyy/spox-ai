@@ -33,8 +33,12 @@ const Projects = {
     // Update header
     document.getElementById('header-title').innerHTML = `
       <i data-lucide="folder" style="width:18px;height:18px;margin-left:8px;color:var(--text-secondary);"></i>
-      ${escapeHtml(project.name)}
+      Projekte
     `;
+
+    // Hide input bar for project dashboard view here instead of app.js
+    // to prevent it disappearing before the project data is ready.
+    document.getElementById('input-area').style.display = 'none';
 
     const area = document.getElementById('chat-area');
     area.style.padding = '0';
@@ -57,11 +61,17 @@ const Projects = {
             <div style="padding:12px;color:var(--text-muted);font-size:13px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px dashed var(--border);">
               Keine Dateien hochgeladen. Füge Dokumente hinzu, damit die AI sie als Kontext nutzen kann.
             </div>
-          ` : files.map(file => `
+          ` : files.map(file => {
+      const isImage = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.mime_type);
+      const previewHtml = isImage
+        ? `<img src="/uploads/${file.filename}" class="file-thumbnail" alt="${escapeHtml(file.original_name)}">`
+        : `<i data-lucide="${file.mime_type === 'application/pdf' ? 'file-text' : 'file'}" class="file-icon-placeholder"></i>`;
+
+      return `
             <div class="file-item">
-              <div class="file-preview-trigger" style="display:contents; cursor:pointer;">
-                <i data-lucide="${file.mime_type === 'application/pdf' ? 'file-text' : 'file'}" style="width:18px;height:18px;color:var(--text-secondary);"></i>
-                <div class="file-info">
+              <div class="file-preview-trigger" style="display:flex; align-items:center; gap:12px; flex:1; cursor:pointer;">
+                ${previewHtml}
+                <div class="file-info" style="flex:1;">
                   <div class="file-name">${escapeHtml(file.original_name)}</div>
                   <div class="file-meta">${(file.size / 1024 / 1024).toFixed(2)} MB • ${new Date(file.created_at).toLocaleDateString()}</div>
                 </div>
@@ -70,7 +80,8 @@ const Projects = {
                 <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
               </button>
             </div>
-          `).join('')}
+          `;
+    }).join('')}
         </div>
 
         <!-- New Chat Button -->
@@ -103,8 +114,7 @@ const Projects = {
 
     // Bind events
     document.getElementById('new-project-chat-btn').addEventListener('click', () => {
-      Chat.currentProjectId = project.uuid;
-      Chat.showHome();
+      Chat.showHome(project.uuid);
       // Ensure input bar is visible for the new chat
       document.getElementById('input-area').style.display = 'block';
       // Ensure header reflects project context
@@ -145,15 +155,18 @@ const Projects = {
       // Delete button
       el.querySelector('.file-delete-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm('Datei wirklich löschen?')) return;
+        if (!await UI.confirm('Datei löschen', 'Möchtest du diese Datei wirklich löschen?')) return;
         const id = el.querySelector('.file-delete-btn').dataset.id;
         try {
           const res = await fetch(`/api/files.php?id=${id}`, {
             method: 'DELETE',
             headers: { 'X-CSRF-Token': Profile.getCsrfToken() }
           });
-          if (res.ok) this.loadProject(project.uuid);
-        } catch { alert('Fehler beim Löschen.'); }
+          if (res.ok) {
+            this.loadProject(project.uuid);
+            UI.toast('Datei gelöscht', 'success');
+          }
+        } catch { UI.toast('Fehler beim Löschen.', 'error'); }
       });
     });
 

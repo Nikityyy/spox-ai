@@ -68,6 +68,19 @@ try {
     if (!$checkMsgDel) {
         $db->query("ALTER TABLE messages ADD COLUMN deleted_at TIMESTAMP NULL AFTER created_at");
     }
+
+    // 5. Gemini Caches: Table for context caching
+    $checkCacheTable = $db->query("SHOW TABLES LIKE 'gemini_caches'")->fetch();
+    if (!$checkCacheTable) {
+        $db->query("CREATE TABLE gemini_caches (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            cache_name VARCHAR(255) NOT NULL,
+            model VARCHAR(128) NOT NULL,
+            display_name VARCHAR(128) NOT NULL,
+            expire_time TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
 } catch (Throwable $e) { 
     // Log to error_logs for debugging
     log_error('migration_hook_failed', ['error' => $e->getMessage()]);
@@ -231,4 +244,47 @@ function generate_uuid(): string {
     $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
     $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+}
+
+// ─── RAG Context ─────────────────────────────────────────────────────────────
+
+function build_rag_context(int $projectId, string $message): string {
+    try {
+        // Fetch files from the project that have extracted text
+        // For a simple initial implementation, we take all extracted text until a limit.
+        // In a more advanced version, we would use vector search here.
+        $files = DB::query(
+            "SELECT filename, extracted_text FROM files 
+             WHERE project_id = ? AND deleted_at IS NULL AND extracted_text IS NOT NULL 
+             LIMIT 20",
+            [$projectId]
+        )->fetchAll();
+
+        if (empty($files)) return "";
+
+        $context = "Hier sind relevante Informationen aus dem Projekt-Kontext:\n\n";
+        $totalLength = 0;
+        $maxLength = 10000; // Limit to ~10k characters for context to avoid huge payloads
+
+        foreach ($files as $file) {
+            $snippet = trim($file['extracted_text']);
+            if (empty($snippet)) continue;
+
+            $header = "--- Datei: {$file['filename']} ---\n";
+            if (($totalLength + strlen($header) + strlen($snippet)) > $maxLength) {
+                $snippet = substr($snippet, 0, $maxLength - $totalLength - strlen($header));
+                if (strlen($snippet) < 50) break; // Don't add tiny fragments
+            }
+
+            $context .= $header . $snippet . "\n\n";
+            $totalLength += strlen($header) + strlen($snippet) + 2;
+
+            if ($totalLength >= $maxLength) break;
+        }
+
+        return $context;
+    } catch (Throwable $e) {
+        log_error('build_rag_context_failed', ['error' => $e->getMessage()]);
+        return "";
+    }
 }

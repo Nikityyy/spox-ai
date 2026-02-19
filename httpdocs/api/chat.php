@@ -71,11 +71,36 @@ if ($userId) {
 // Build RAG context if project
 $ragContext = '';
 if ($projectId && $userId) {
-    $ragContext = build_rag_context($projectId, $message);
+    try {
+        $ragContext = build_rag_context($projectId, $message);
+    } catch (Throwable $e) {
+        log_error('rag_failed', ['message' => $e->getMessage()]);
+    }
 }
 
-// Build Gemini request
-$geminiMessages = build_gemini_messages($userId, $chatUuid, $history, $message, $ragContext, $fileNames);
+// CRITICAL-PERFORMANCE: Save user message to DB immediately
+// This ensures that even if Gemini fails or the user refreshes, the prompt is recorded.
+if ($userId) {
+    try {
+        $msgUuid = save_message($chatUuid, 'user', $message);
+        
+        // Link files to this specific message
+        if ($msgUuid && !empty($fileNames)) {
+            $placeholders = implode(',', array_fill(0, count($fileNames), '?'));
+            $params = array_merge([$msgUuid, $userId], $fileNames);
+            DB::query(
+                "UPDATE files SET message_uuid = ? WHERE user_id = ? AND filename IN ($placeholders) AND message_uuid IS NULL",
+                $params
+            );
+        }
+
+        // Auto-generate title from first message immediately
+        $title = generate_chat_title($message);
+        DB::query('UPDATE chats SET title = ? WHERE uuid = ? AND title IS NULL', [$title, $chatUuid]);
+    } catch (Throwable $e) {
+        log_error('save_user_message_failed', ['error' => $e->getMessage()]);
+    }
+}
 
 // CRITICAL: Release session lock before streaming.
 // PHP holds the session file lock for the entire request duration.
@@ -104,39 +129,59 @@ echo ': ' . str_repeat(' ', 1024) . "\n\n";
 @ob_flush();
 flush();
 
-// Call Gemini with streaming
+// Call Gemini with fallback rotation
 $startTime    = microtime(true);
 $fullResponse = '';
 $error        = null;
-$actualModel  = GEMINI_MODEL;
 
-// Save user message to DB immediately
-if ($userId) {
-    $msgUuid = save_message($chatUuid, 'user', $message);
-    
-    // Link files to this specific message
-    if ($msgUuid && !empty($fileNames)) {
-        $placeholders = implode(',', array_fill(0, count($fileNames), '?'));
-        $params = array_merge([$msgUuid, $userId], $fileNames);
-        DB::query(
-            "UPDATE files SET message_uuid = ? WHERE user_id = ? AND filename IN ($placeholders) AND message_uuid IS NULL",
-            $params
-        );
+$apiKeys = GEMINI_API_KEYS;
+$models  = GEMINI_MODELS;
+
+// Pick a starting key index randomly to distribute load
+$startingKeyIndex = mt_rand(0, count($apiKeys) - 1);
+$success = false;
+$actualModel = $models[0];
+
+for ($k = 0; $k < count($apiKeys); $k++) {
+    $keyIndex = ($startingKeyIndex + $k) % count($apiKeys);
+    $apiKey = $apiKeys[$keyIndex];
+
+    for ($m = 0; $m < count($models); $m++) {
+        $actualModel = $models[$m];
+        
+        try {
+            $cachedContentName = null;
+            $geminiMessages = build_gemini_messages($userId, $chatUuid, $history, $message, $ragContext, $fileNames, $cachedContentName, $projectId);
+
+            $fullResponse = stream_gemini($geminiMessages, function(string $token) {
+                send_sse(['type' => 'token', 'text' => $token]);
+            }, $actualModel, $apiKey, $cachedContentName);
+
+            $success = true;
+            break 2; // Exit both loops on success
+        } catch (Throwable $e) {
+            $error = $e->getMessage();
+            $isRateLimit = (str_contains($error, '429') || str_contains($error, 'quota') || str_contains($error, 'exhausted'));
+            
+            log_error('gemini_retry', [
+                'model' => $actualModel,
+                'key_index' => $keyIndex,
+                'error' => $error,
+                'is_rate_limit' => $isRateLimit
+            ]);
+
+            if ($isRateLimit) {
+                continue; // Try next model/key
+            } else {
+                continue; // Still rotate just in case
+            }
+        }
     }
-
-    // Auto-generate title from first message
-    $title = generate_chat_title($message);
-    DB::query('UPDATE chats SET title = ? WHERE uuid = ? AND title IS NULL', [$title, $chatUuid]);
 }
 
-try {
-    $fullResponse = stream_gemini($geminiMessages, function(string $token) {
-        send_sse(['type' => 'token', 'text' => $token]);
-    }, $actualModel);
-} catch (Throwable $e) {
-    $error = $e->getMessage();
-    log_error('gemini_error', ['message' => $e->getMessage()]);
-    send_sse(['type' => 'error', 'message' => 'SpoX+ AI ist momentan überlastet oder nicht erreichbar. (Details: ' . $e->getMessage() . ')']);
+if (!$success) {
+    log_error('gemini_all_fallbacks_failed', ['error' => $error]);
+    send_sse(['type' => 'error', 'message' => 'SpoX+ AI ist momentan überlastet. Bitte versuche es in wenigen Minuten erneut.']);
     send_sse(['type' => 'done', 'chat_uuid' => $chatUuid]);
     exit;
 }
@@ -149,7 +194,7 @@ if ($userId && !empty($fullResponse)) {
 }
 
 // Log Gemini call
-log_gemini_call($userId, $chatUuid, $durationMs, $error, $actualModel);
+log_gemini_call($userId, $chatUuid, $durationMs, null, $actualModel);
 
 // Send done event
 $title = generate_chat_title($message);
@@ -167,13 +212,21 @@ function send_sse(array $data): void {
     flush();
 }
 
-function ensure_chat_exists(string $uuid, int $userId, ?int $projectId): void {
-    $existing = DB::query('SELECT id FROM chats WHERE uuid = ?', [$uuid])->fetch();
+function ensure_chat_exists(string $uuid, int $userId, ?string $projectUuid): void {
+    $projectId = null;
+    if ($projectUuid) {
+        $p = DB::query('SELECT id FROM projects WHERE uuid = ? AND user_id = ? AND deleted_at IS NULL', [$projectUuid, $userId])->fetch();
+        if ($p) $projectId = $p['id'];
+    }
+
+    $existing = DB::query('SELECT id, project_id FROM chats WHERE uuid = ?', [$uuid])->fetch();
     if (!$existing) {
         DB::query(
             'INSERT INTO chats (user_id, project_id, uuid) VALUES (?, ?, ?)',
             [$userId, $projectId, $uuid]
         );
+    } else if ($projectId && $existing['project_id'] !== $projectId) {
+        DB::query('UPDATE chats SET project_id = ? WHERE id = ?', [$projectId, $existing['id']]);
     }
 }
 
@@ -188,42 +241,92 @@ function save_message(string $chatUuid, string $sender, string $content): ?strin
     return $msgUuid;
 }
 
-function build_rag_context(int $projectId, string $query): string {
-    $files = DB::query(
-        'SELECT extracted_text, filename FROM files WHERE project_id = ? AND extracted_text IS NOT NULL',
-        [$projectId]
-    )->fetchAll();
+// ─── Gemini Cache Management ──────────────────────────────────────────────────
 
-    if (empty($files)) return '';
+// ─── Gemini Cache Management ──────────────────────────────────────────────────
 
-    $context = "=== Projektdokumente (für Kontext) ===\n";
-    foreach ($files as $file) {
-        // Simple relevance: include first 2000 chars of each file
-        $text = mb_substr($file['extracted_text'], 0, 2000);
-        $context .= "\n--- {$file['filename']} ---\n$text\n";
+function get_or_create_gemini_cache(string $model): ?string {
+    $apiKeys = GEMINI_API_KEYS;
+    $apiKey  = $apiKeys[0]; // Baseline key for cache management
+    $promptPath = __DIR__ . '/../data/system_prompt.txt';
+    if (!file_exists($promptPath)) return null;
+    $systemPrompt = file_get_contents($promptPath);
+
+    try {
+        // Check for active cache in DB
+        // Use a 10-minute buffer before expiration
+        $cache = DB::query(
+            "SELECT cache_name FROM gemini_caches 
+             WHERE model = ? AND expire_time > DATE_ADD(NOW(), INTERVAL 10 MINUTE) 
+             ORDER BY created_at DESC LIMIT 1",
+            [$model]
+        )->fetch();
+
+        if ($cache) return $cache['cache_name'];
+
+        // Create new cache via API
+        $url = "https://generativelanguage.googleapis.com/v1beta/cachedContents?key={$apiKey}";
+        $payload = [
+            'model' => "models/{$model}",
+            'systemInstruction' => [
+                'parts' => [['text' => $systemPrompt]]
+            ],
+            'ttl' => '3600s' // 1 hour
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST       => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpStatus >= 200 && $httpStatus < 300) {
+            $data = json_decode($response, true);
+            $cacheName = $data['name'] ?? null;
+            $expireTime = $data['expireTime'] ?? null;
+
+            if ($cacheName && $expireTime) {
+                // Convert ISO8601 to MySQL format
+                $dt = new DateTime($expireTime);
+                $mysqlTime = $dt->format('Y-m-d H:i:s');
+
+                DB::query(
+                    "INSERT INTO gemini_caches (cache_name, model, display_name, expire_time) VALUES (?, ?, ?, ?)",
+                    [$cacheName, $model, 'SpoX+ System Prompt', $mysqlTime]
+                );
+                return $cacheName;
+            }
+        } else {
+            log_error('cache_creation_failed', ['status' => $httpStatus, 'response' => $response]);
+        }
+    } catch (Throwable $e) {
+        log_error('cache_helper_error', ['message' => $e->getMessage()]);
     }
-    $context .= "\n=== Ende der Dokumente ===\n";
-    return $context;
+
+    return null;
 }
 
-function build_gemini_messages(int|null $userId, string $chatUuid, array $history, string $newMessage, string $ragContext, array $fileNames = []): array {
-    $systemPrompt = "Du bist SpoX+ AI, der KI-Assistent des HAK Sport+ Programms an der BHAK & BHAS Steyr. "
-        . "Das HAK Sport+ Programm richtet sich an bewegungsorientierte Schülerinnen und Schüler, die sich für Sport, Fitness, Teamarbeit und einen aktiven Lebensstil begeistern. "
-        . "Sport+ ist auch ein eigenständiges Maturafach (Reife- und Diplomprüfung), daher hilfst du auch gezielt bei der Matura-Vorbereitung in Sport+. "
-        . "Deine Kernthemen sind: Training und Trainingsplanung, Sporternährung, Sportveranstaltungen und Events, Teamarbeit und Leadership, Motivation und Mentale Stärke, kaufmännische Ausbildung mit Sportbezug, Matura-Vorbereitung Sport+. "
-        . "Du antwortest auf Deutsch oder in der Sprache des Nutzers. "
-        . "Du bist motivierend, präzise, sportlich und jugendgerecht. "
-        . "Du gibst keine schädlichen, illegalen oder unangemessenen Inhalte aus. "
-        . "Wenn du dir bei etwas nicht sicher bist, sagst du das ehrlich. "
-        . "Dein Motto: 'Wer sich bewegt, kann auch etwas bewegen!'.";
+function build_gemini_messages(int|null $userId, string $chatUuid, array $history, string $newMessage, string $ragContext, array $fileNames = [], ?string &$cachedContentName = null, ?int $projectId = null): array {
+    $model = GEMINI_MODELS[0]; // Logic might need adjustment if rotation affects caching
+    $cachedContentName = get_or_create_gemini_cache($model);
+
+    $systemPrompt = "";
+    if (!$cachedContentName) {
+        $promptPath = __DIR__ . '/../data/system_prompt.txt';
+        $systemPrompt = file_exists($promptPath) ? file_get_contents($promptPath) : "Du bist SpoX+ AI.";
+    }
 
     if ($ragContext) {
         $systemPrompt .= "\n\n" . $ragContext;
     }
 
     $contents = [];
-
-    // Add history (last 20 messages to stay within context)
     $recentHistory = array_slice($history, -20);
     foreach ($recentHistory as $msg) {
         $role = ($msg['sender'] ?? '') === 'user' ? 'user' : 'model';
@@ -233,10 +336,12 @@ function build_gemini_messages(int|null $userId, string $chatUuid, array $histor
         ];
     }
 
-    // Prepare parts for the new user message
-    $userParts = [['text' => $newMessage]];
+    $messageText = $newMessage;
+    if ($cachedContentName && $ragContext) {
+        $messageText = $ragContext . "\n\n" . $newMessage;
+    }
+    $userParts = [['text' => $messageText]];
 
-    // Add multimodal files if any
     if (!empty($fileNames) && $userId) {
         foreach ($fileNames as $fn) {
             $file = DB::query(
@@ -245,7 +350,6 @@ function build_gemini_messages(int|null $userId, string $chatUuid, array $histor
             )->fetch();
 
             if ($file && file_exists($file['storage_path'])) {
-                // Gemini supports images and PDFs directly
                 $supportedMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
                 if (in_array($file['mime_type'], $supportedMimes)) {
                     $userParts[] = [
@@ -259,19 +363,18 @@ function build_gemini_messages(int|null $userId, string $chatUuid, array $histor
         }
     }
 
-    // Add new user message
     $contents[] = [
         'role'  => 'user',
         'parts' => $userParts,
     ];
 
-    return [
-        'system_instruction' => ['parts' => [['text' => $systemPrompt]]],
+    $config = [
         'contents'           => $contents,
         'generationConfig'   => [
             'temperature'     => 0.7,
             'maxOutputTokens' => 2048,
             'topP'            => 0.95,
+            'thinkingConfig' => ['thinkingBudget' => 128],
         ],
         'safetySettings' => [
             ['category' => 'HARM_CATEGORY_HARASSMENT',        'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'],
@@ -280,12 +383,20 @@ function build_gemini_messages(int|null $userId, string $chatUuid, array $histor
             ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'],
         ],
     ];
+
+    if (!$cachedContentName) {
+        $config['system_instruction'] = ['parts' => [['text' => $systemPrompt]]];
+    }
+
+    return $config;
 }
 
-function stream_gemini(array $payload, callable $onToken, string &$actualModel): string {
-    $model   = trim($actualModel);
-    $apiKey  = trim(GEMINI_API_KEY);
-    $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:streamGenerateContent?alt=sse&key={$apiKey}";
+function stream_gemini(array $payload, callable $onToken, string $model, string $apiKey, ?string $cachedContentName = null): string {
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:streamGenerateContent?alt=sse&key={$apiKey}";
+
+    if ($cachedContentName) {
+        $payload['cachedContent'] = $cachedContentName;
+    }
 
     $jsonBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
@@ -298,16 +409,29 @@ function stream_gemini(array $payload, callable $onToken, string &$actualModel):
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_RETURNTRANSFER => false,
         CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_BUFFERSIZE     => 1024, // Small buffer to process tokens immediately
+        CURLOPT_BUFFERSIZE     => 1024,
     ]);
 
     $buffer      = '';
     $fullText    = '';
-    $httpStatus  = 200;
+    $tokenBuffer = '';
+    $lastFlush   = microtime(true);
+    $isError     = false;
+    $errorMessage = "";
 
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$buffer, &$fullText, $onToken) {
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$buffer, &$fullText, &$tokenBuffer, &$lastFlush, &$isError, &$errorMessage, $onToken) {
         $buffer .= $data;
-        // Process SSE lines
+
+        // Peak into first chunks for error JSON
+        if (!$isError && str_contains($buffer, '"error"')) {
+             $parsed = json_decode($buffer, true);
+             if (isset($parsed['error'])) {
+                 $isError = true;
+                 $errorMessage = ($parsed['error']['message'] ?? 'API Error') . " (" . ($parsed['error']['code'] ?? 'no code') . ")";
+                 return 0; // Abort
+             }
+        }
+
         while (($pos = strpos($buffer, "\n")) !== false) {
             $line   = substr($buffer, 0, $pos);
             $buffer = substr($buffer, $pos + 1);
@@ -319,71 +443,15 @@ function stream_gemini(array $payload, callable $onToken, string &$actualModel):
                     $parsed = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
                     $token  = $parsed['candidates'][0]['content']['parts'][0]['text'] ?? '';
                     if ($token !== '') {
-                        $fullText .= $token;
-                        $onToken($token);
+                        $fullText    .= $token;
+                        $tokenBuffer .= $token;
+                        $now = microtime(true);
+                        if (($now - $lastFlush) > 0.05 || strlen($tokenBuffer) > 128 || str_contains($token, "\n") || str_contains($token, '$')) {
+                            $onToken($tokenBuffer);
+                            $tokenBuffer = '';
+                            $lastFlush   = $now;
+                        }
                     }
-                } catch (JsonException) { /* skip malformed */ }
-            }
-        }
-        return strlen($data);
-    });
-
-    $result = curl_exec($ch);
-    $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError  = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlError) {
-        throw new RuntimeException('cURL error: ' . $curlError);
-    }
-
-    if ($httpStatus === 429 || $httpStatus >= 500) {
-        // Try fallback model
-        $actualModel = GEMINI_MODEL_FALLBACK;
-        return stream_gemini_fallback($payload, $onToken);
-    }
-
-    if ($httpStatus >= 400) {
-        throw new RuntimeException('Gemini API error: HTTP ' . $httpStatus);
-    }
-
-    return $fullText;
-}
-
-function stream_gemini_fallback(array $payload, callable $onToken): string {
-    // Exponential backoff with fallback model
-    $model  = trim(GEMINI_MODEL_FALLBACK);
-    $apiKey = trim(GEMINI_API_KEY);
-    $url    = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:streamGenerateContent?alt=sse&key={$apiKey}";
-
-    // We removed the sleep(2) to improve first-token speed on fallback.
-
-    $jsonBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $jsonBody,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT        => 120,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_RETURNTRANSFER => false,
-        CURLOPT_BUFFERSIZE     => 1024,
-    ]);
-
-    $buffer   = '';
-    $fullText = '';
-
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$buffer, &$fullText, $onToken) {
-        $buffer .= $data;
-        while (($pos = strpos($buffer, "\n")) !== false) {
-            $line   = substr($buffer, 0, $pos);
-            $buffer = substr($buffer, $pos + 1);
-            if (str_starts_with($line, 'data: ')) {
-                $json = substr($line, 6);
-                try {
-                    $parsed = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-                    $token  = $parsed['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                    if ($token !== '') { $fullText .= $token; $onToken($token); }
                 } catch (JsonException) {}
             }
         }
@@ -394,8 +462,12 @@ function stream_gemini_fallback(array $payload, callable $onToken): string {
     $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($httpStatus >= 400) {
-        throw new RuntimeException('Gemini fallback model also failed: HTTP ' . $httpStatus);
+    if ($tokenBuffer !== '') {
+        $onToken($tokenBuffer);
+    }
+
+    if ($isError || $httpStatus >= 400) {
+        throw new Exception($errorMessage ?: "HTTP Error $httpStatus");
     }
 
     return $fullText;

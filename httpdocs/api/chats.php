@@ -32,6 +32,7 @@ function handle_list_chats(array $user): never {
 
         $chats = DB::query(
             'SELECT uuid, title, created_at, updated_at,
+                    (SELECT uuid FROM projects WHERE id = chats.project_id) AS project_uuid,
                     (SELECT content FROM messages WHERE chat_id = chats.id ORDER BY created_at LIMIT 1) AS first_message
              FROM chats
              WHERE user_id = ? AND project_id = ? AND deleted_at IS NULL
@@ -42,14 +43,15 @@ function handle_list_chats(array $user): never {
         json_response(['project' => ['uuid' => $projectUuid, 'name' => $project['name']], 'chats' => $chats]);
     }
 
-    // Global chats (no project)
+    // List all chats for the user (including those in projects) for the sidebar to group them
     $chats = DB::query(
         'SELECT uuid, title, created_at, updated_at,
+                (SELECT uuid FROM projects WHERE id = chats.project_id) AS project_uuid,
                 (SELECT content FROM messages WHERE chat_id = chats.id ORDER BY created_at LIMIT 1) AS first_message
          FROM chats
-         WHERE user_id = ? AND project_id IS NULL AND deleted_at IS NULL
+         WHERE user_id = ? AND deleted_at IS NULL
          ORDER BY updated_at DESC
-         LIMIT 100',
+         LIMIT 200',
         [$user['id']]
     )->fetchAll();
 
@@ -60,7 +62,11 @@ function handle_get_chat(array $user): never {
     $uuid = sanitize_uuid($_GET['uuid']);
 
     $chat = DB::query(
-        'SELECT id, uuid, title, project_id, created_at FROM chats WHERE uuid = ? AND user_id = ? AND deleted_at IS NULL',
+        'SELECT id, uuid, title, project_id, created_at,
+                (SELECT uuid FROM projects WHERE id = chats.project_id) AS project_uuid,
+                (SELECT name FROM projects WHERE id = chats.project_id) AS project_name
+         FROM chats
+         WHERE uuid = ? AND user_id = ? AND deleted_at IS NULL',
         [$uuid, $user['id']]
     )->fetch();
 
@@ -78,8 +84,11 @@ function handle_get_chat(array $user): never {
         )->fetchAll();
     }
 
+    $projectUuid = $chat['project_uuid'];
     unset($chat['id']);
+    unset($chat['project_id']);
     $chat['messages'] = $messages;
+    $chat['project_uuid'] = $projectUuid;
     json_response(['chat' => $chat]);
 }
 
