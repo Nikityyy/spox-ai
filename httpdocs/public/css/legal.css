@@ -1,0 +1,134 @@
+/* SpoX+ AI — Legal Documentation Styles */
+
+:root {
+    --main-bg: #1a1a1a;
+    --card-bg: #252525;
+    --border: #333;
+    --text-primary: #ffffff;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --accent: #ffffff;
+    --link-color: #ffffff;
+}
+
+body {
+    background: var(--main-bg);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.7;
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: #fff;
+}
+
+h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    color: var(--text-secondary);
+}
+
+p {
+    margin-bottom: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.meta {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 3rem;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    transition: opacity 0.2s;
+}
+
+a:hover {
+    opacity: 0.8;
+}
+
+ul {
+    padding-left: 1.25rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+li {
+    margin-bottom: 0.5rem;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 4rem 0 2rem;
+}
+
+.contact-box {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 16px;
+    margin: 2rem 0;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.contact-box strong {
+    color: #fff;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: #fff;
+}
+
+@media (max-width: 640px) {
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.25rem;
+    }
+
+    body {
+        padding: 30px 16px;
+    }
+}

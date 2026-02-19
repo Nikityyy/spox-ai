@@ -5,198 +5,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datenschutzerklärung — SpoX+AI</title>
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px;
-            line-height: 1.7;
-            color: #222;
-            background: #fdfdfd;
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: #111;
-        }
-
-        h2 {
-            font-size: 1.3rem;
-            margin-top: 2.5rem;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 0.5rem;
-            color: #333;
-        }
-
-        h3 {
-            font-size: 1.1rem;
-            margin-top: 1.5rem;
-            color: #444;
-        }
-
-        .meta {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 2.5rem;
-            font-style: italic;
-        }
-
-        a {
-            color: #2563eb;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        ul {
-            padding-left: 1.2rem;
-        }
-
-        li {
-            margin-bottom: 0.4rem;
-        }
-
-        .contact-box {
-            background: #f3f4f6;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #2563eb;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/legal.css">
 </head>
 
 <body>
+    <div class="container">
+        <a href="/" class="back-link">← Zurück zu SpoX+AI</a>
 
-    <h1>Datenschutzerklärung</h1>
-    <p class="meta">Stand: Februar 2026 · SpoX+ AI — BHAK &amp; BHAS Steyr</p>
+        <h1>Datenschutzerklärung</h1>
+        <p class="meta">Stand: Februar 2026 · SpoX+ AI — BHAK &amp; BHAS Steyr</p>
 
-    <div class="contact-box">
-        <strong>Verantwortliche Stelle und Kontakt:</strong><br>
-        Bundeshandelsakademie und Bundeshandelsschule Steyr<br>
-        Leopold-Werndl-Straße 7<br>
-        4400 Steyr, Österreich<br><br>
-        <strong>Datenschutzverantwortlicher:</strong><br>
-        Herr Mathias Spanring<br>
-        E-Mail: <a href="mailto:administration@hak-steyr.at">administration@hak-steyr.at</a>
+        <div class="contact-box">
+            <strong>Verantwortliche Stelle und Kontakt:</strong><br>
+            Bundeshandelsakademie und Bundeshandelsschule Steyr<br>
+            Leopold-Werndl-Straße 7<br>
+            4400 Steyr, Österreich<br><br>
+            <strong>Datenschutzverantwortlicher:</strong><br>
+            Herr Mathias Spanring<br>
+            E-Mail: <a href="mailto:administration@hak-steyr.at">administration@hak-steyr.at</a>
+        </div>
+
+        <h2>1. Zugangsberechtigung und erhobene Anmeldedaten</h2>
+        <p>
+            Die Anmeldung bei SpoX+ AI erfolgt ausschließlich über ein schulisches Microsoft-Konto (Azure Active
+            Directory). Dabei wird ein Identitätstoken übertragen, das folgende Daten enthält:
+        </p>
+        <ul>
+            <li>Benutzername</li>
+            <li>Schulische E-Mail-Adresse</li>
+            <li>Eindeutige Nutzer-ID</li>
+        </ul>
+        <p>
+            Das System speichert keine Passwörter, da die Authentifizierung vollständig über Microsoft erfolgt. Zugang
+            erhalten ausschließlich Schüler:innen und Lehrkräfte der Schule.
+        </p>
+        <p><strong>Rechtsgrundlage:</strong></p>
+        <ul>
+            <li>Art. 6 Abs. 1 lit. e DSGVO i.V.m. § 13 SchOG (Bildungsauftrag)</li>
+            <li>Bei freiwilliger Nutzung: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
+        </ul>
+
+        <h2>2. Zugriffsbeschränkung und Berechtigungen</h2>
+        <ul>
+            <li>Zugriff erhalten nur autorisierte Personen (IT-Verantwortliche, Systemadministrator:innen,
+                Datenschutzverantwortlicher).</li>
+            <li>Es gilt das Need-to-know-Prinzip — Zugriffe werden protokolliert.</li>
+            <li>Der Login bleibt aktiv bis zum manuellen Logout oder nach 30 Tagen Inaktivität (siehe
+                Cookie-Richtlinie).</li>
+        </ul>
+
+        <h2>3. Speicherung von Chatverläufen</h2>
+        <h3>Eingeloggte Nutzer:innen:</h3>
+        <ul>
+            <li>Chatverläufe werden serverseitig gespeichert, solange das Microsoft-Konto aktiv ist.</li>
+            <li>Nach Löschung des Kontos werden alle Inhalte vollständig entfernt.</li>
+            <li>Zweck: Lernunterstützung, Unterrichtsvorbereitung, Rückfragen.</li>
+        </ul>
+        <h3>Nicht eingeloggte Gäste:</h3>
+        <ul>
+            <li>Speicherung erfolgt nur lokal im Browser (Local Storage).</li>
+            <li>Automatische Löschung nach 30 Tagen, keine Verknüpfung mit persönlichen Daten.</li>
+        </ul>
+
+        <h2>4. Verarbeitung durch Google Gemini</h2>
+        <p>
+            SpoX+ AI verwendet für KI-Funktionen den Cloud-Dienst Google Gemini. Dabei werden bestimmte Inhalte (z. B.
+            Nutzerfragen) über eine TLS-gesicherte API an Google übermittelt.
+        </p>
+        <p>Folgende Schutzmaßnahmen gelten:</p>
+        <ul>
+            <li>Keine Übertragung personenbezogener Daten (z. B. Name, E-Mail).</li>
+            <li>Nutzung ausschließlich schulinterner PDF-Dokumente als Wissensbasis.</li>
+            <li>Keine Verwendung der Inhalte zu Trainingszwecken laut Google.</li>
+            <li>Verarbeitung erfolgt ausschließlich innerhalb der EU (Standardvertragsklauseln — SCCs).</li>
+        </ul>
+        <p>
+            <strong>Auftragsverarbeitung:</strong> Google und Microsoft handeln auf Basis von Art. 28 DSGVO-konformen
+            Verträgen und verarbeiten Daten ausschließlich auf Weisung der Schule.
+        </p>
+
+        <h2>5. Datensicherheit (Art. 32 DSGVO)</h2>
+        <p>Alle personenbezogenen Daten werden auf einem schulinternen Server in Österreich gespeichert.</p>
+        <p>Technische und organisatorische Schutzmaßnahmen:</p>
+        <ul>
+            <li>HTTPS/TLS-Verschlüsselung</li>
+            <li>Firewall, Zugriffsbeschränkungen, Logging</li>
+            <li>Rollenbasierte Rechtevergabe</li>
+            <li>Regelmäßige Backups und Malware-Schutz</li>
+            <li>Schulungen für alle datenschutzrelevanten Rollen</li>
+            <li>Vertraulichkeitsverpflichtung aller Beteiligten</li>
+        </ul>
+
+        <h2>6. AI-spezifische Regelungen (EU AI Act)</h2>
+        <p>SpoX+ AI ist ein Low-Risk-KI-System gemäß EU AI Act (in Kraft seit 2024).</p>
+        <ul>
+            <li>Nutzer:innen werden darüber informiert, dass sie mit einer KI interagieren.</li>
+            <li>KI-generierte Inhalte sind deutlich gekennzeichnet.</li>
+            <li>Es erfolgt keine Emotionserkennung oder automatisierte Bewertung.</li>
+            <li>Es findet keine Datenverarbeitung außerhalb der EU statt (SCCs vorhanden).</li>
+            <li>Transparenzpflichten gemäß Art. 52 AI Act gelten ab August 2026.</li>
+        </ul>
+        <p><strong>AI Literacy:</strong> Schulungen sind seit Februar 2025 verpflichtend und werden in unserer Schule
+            umgesetzt. Lehrkräfte und Schüler:innen erhalten regelmäßige Einführungen zu Risiken und
+            verantwortungsvoller Nutzung.</p>
+
+        <h2>7. Betroffenenrechte</h2>
+        <p>Gemäß DSGVO stehen Ihnen folgende Rechte zu:</p>
+        <ul>
+            <li><strong>Auskunft (Art. 15):</strong> Welche Daten sind gespeichert?</li>
+            <li><strong>Berichtigung (Art. 16):</strong> Korrektur falscher Daten.</li>
+            <li><strong>Löschung (Art. 17):</strong> Daten löschen lassen.</li>
+            <li><strong>Einschränkung (Art. 18):</strong> Verarbeitung einschränken.</li>
+            <li><strong>Datenübertragbarkeit (Art. 20):</strong> Übertragung der Daten in maschinenlesbarer Form.</li>
+            <li><strong>Widerspruch (Art. 21):</strong> Verarbeitung widersprechen.</li>
+            <li><strong>Widerruf (Art. 7):</strong> Einwilligung widerrufen.</li>
+        </ul>
+        <p><strong>Besonderheiten für Minderjährige:</strong> Für Schüler:innen gelten besondere Schutzregeln. In
+            bestimmten Fällen ist eine Zustimmung der Eltern gemäß Art. 8 DSGVO erforderlich.</p>
+        <p>Kontakt: <a href="mailto:administration@hak-steyr.at">administration@hak-steyr.at</a></p>
+
+        <h2>8. Automatisierte Entscheidungsfindung</h2>
+        <p>SpoX+ AI trifft keine automatisierten Entscheidungen im Sinne von Art. 22 DSGVO. Die KI dient ausschließlich
+            der Lernunterstützung.</p>
+
+        <h2>9. Änderungen dieser Datenschutzerklärung</h2>
+        <p>Diese Erklärung wird regelmäßig überarbeitet, insbesondere bei Gesetzesänderungen oder technischen
+            Erweiterungen.</p>
+
+        <hr>
+        <p class="meta">BHAK &amp; BHAS Steyr · Leopold-Werndl-Straße 7, 4400 Steyr</p>
     </div>
-
-    <h2>1. Zugangsberechtigung und erhobene Anmeldedaten</h2>
-    <p>
-        Die Anmeldung bei SpoX+ AI erfolgt ausschließlich über ein schulisches Microsoft-Konto (Azure Active Directory).
-        Dabei wird ein Identitätstoken übertragen, das folgende Daten enthält:
-    </p>
-    <ul>
-        <li>Benutzername</li>
-        <li>Schulische E-Mail-Adresse</li>
-        <li>Eindeutige Nutzer-ID</li>
-    </ul>
-    <p>
-        Das System speichert keine Passwörter, da die Authentifizierung vollständig über Microsoft erfolgt. Zugang
-        erhalten ausschließlich Schüler:innen und Lehrkräfte der Schule.
-    </p>
-    <p><strong>Rechtsgrundlage:</strong></p>
-    <ul>
-        <li>Art. 6 Abs. 1 lit. e DSGVO i.V.m. § 13 SchOG (Bildungsauftrag)</li>
-        <li>Bei freiwilliger Nutzung: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
-    </ul>
-
-    <h2>2. Zugriffsbeschränkung und Berechtigungen</h2>
-    <ul>
-        <li>Zugriff erhalten nur autorisierte Personen (IT-Verantwortliche, Systemadministrator:innen,
-            Datenschutzverantwortlicher).</li>
-        <li>Es gilt das Need-to-know-Prinzip — Zugriffe werden protokolliert.</li>
-        <li>Der Login bleibt aktiv bis zum manuellen Logout oder nach 30 Tagen Inaktivität (siehe Cookie-Richtlinie).
-        </li>
-    </ul>
-
-    <h2>3. Speicherung von Chatverläufen</h2>
-    <h3>Eingeloggte Nutzer:innen:</h3>
-    <ul>
-        <li>Chatverläufe werden serverseitig gespeichert, solange das Microsoft-Konto aktiv ist.</li>
-        <li>Nach Löschung des Kontos werden alle Inhalte vollständig entfernt.</li>
-        <li>Zweck: Lernunterstützung, Unterrichtsvorbereitung, Rückfragen.</li>
-    </ul>
-    <h3>Nicht eingeloggte Gäste:</h3>
-    <ul>
-        <li>Speicherung erfolgt nur lokal im Browser (Local Storage).</li>
-        <li>Automatische Löschung nach 30 Tagen, keine Verknüpfung mit persönlichen Daten.</li>
-    </ul>
-
-    <h2>4. Verarbeitung durch Google Gemini</h2>
-    <p>
-        SpoX+ AI verwendet für KI-Funktionen den Cloud-Dienst Google Gemini. Dabei werden bestimmte Inhalte (z. B.
-        Nutzerfragen) über eine TLS-gesicherte API an Google übermittelt.
-    </p>
-    <p>Folgende Schutzmaßnahmen gelten:</p>
-    <ul>
-        <li>Keine Übertragung personenbezogener Daten (z. B. Name, E-Mail).</li>
-        <li>Nutzung ausschließlich schulinterner PDF-Dokumente als Wissensbasis.</li>
-        <li>Keine Verwendung der Inhalte zu Trainingszwecken laut Google.</li>
-        <li>Verarbeitung erfolgt ausschließlich innerhalb der EU (Standardvertragsklauseln — SCCs).</li>
-    </ul>
-    <p>
-        <strong>Auftragsverarbeitung:</strong> Google und Microsoft handeln auf Basis von Art. 28 DSGVO-konformen
-        Verträgen und verarbeiten Daten ausschließlich auf Weisung der Schule.
-    </p>
-
-    <h2>5. Datensicherheit (Art. 32 DSGVO)</h2>
-    <p>Alle personenbezogenen Daten werden auf einem schulinternen Server in Österreich gespeichert.</p>
-    <p>Technische und organisatorische Schutzmaßnahmen:</p>
-    <ul>
-        <li>HTTPS/TLS-Verschlüsselung</li>
-        <li>Firewall, Zugriffsbeschränkungen, Logging</li>
-        <li>Rollenbasierte Rechtevergabe</li>
-        <li>Regelmäßige Backups und Malware-Schutz</li>
-        <li>Schulungen für alle datenschutzrelevanten Rollen</li>
-        <li>Vertraulichkeitsverpflichtung aller Beteiligten</li>
-    </ul>
-
-    <h2>6. AI-spezifische Regelungen (EU AI Act)</h2>
-    <p>SpoX+ AI ist ein Low-Risk-KI-System gemäß EU AI Act (in Kraft seit 2024).</p>
-    <ul>
-        <li>Nutzer:innen werden darüber informiert, dass sie mit einer KI interagieren.</li>
-        <li>KI-generierte Inhalte sind deutlich gekennzeichnet.</li>
-        <li>Es erfolgt keine Emotionserkennung oder automatisierte Bewertung.</li>
-        <li>Es findet keine Datenverarbeitung außerhalb der EU statt (SCCs vorhanden).</li>
-        <li>Transparenzpflichten gemäß Art. 52 AI Act gelten ab August 2026.</li>
-    </ul>
-    <p><strong>AI Literacy:</strong> Schulungen sind seit Februar 2025 verpflichtend und werden in unserer Schule
-        umgesetzt. Lehrkräfte und Schüler:innen erhalten regelmäßige Einführungen zu Risiken und verantwortungsvoller
-        Nutzung.</p>
-
-    <h2>7. Betroffenenrechte</h2>
-    <p>Gemäß DSGVO stehen Ihnen folgende Rechte zu:</p>
-    <ul>
-        <li><strong>Auskunft (Art. 15):</strong> Welche Daten sind gespeichert?</li>
-        <li><strong>Berichtigung (Art. 16):</strong> Korrektur falscher Daten.</li>
-        <li><strong>Löschung (Art. 17):</strong> Daten löschen lassen.</li>
-        <li><strong>Einschränkung (Art. 18):</strong> Verarbeitung einschränken.</li>
-        <li><strong>Datenübertragbarkeit (Art. 20):</strong> Übertragung der Daten in maschinenlesbarer Form.</li>
-        <li><strong>Widerspruch (Art. 21):</strong> Verarbeitung widersprechen.</li>
-        <li><strong>Widerruf (Art. 7):</strong> Einwilligung widerrufen.</li>
-    </ul>
-    <p><strong>Besonderheiten für Minderjährige:</strong> Für Schüler:innen gelten besondere Schutzregeln. In bestimmten
-        Fällen ist eine Zustimmung der Eltern gemäß Art. 8 DSGVO erforderlich.</p>
-    <p>Kontakt: <a href="mailto:administration@hak-steyr.at">administration@hak-steyr.at</a></p>
-
-    <h2>8. Automatisierte Entscheidungsfindung</h2>
-    <p>SpoX+ AI trifft keine automatisierten Entscheidungen im Sinne von Art. 22 DSGVO. Die KI dient ausschließlich der
-        Lernunterstützung.</p>
-
-    <h2>9. Änderungen dieser Datenschutzerklärung</h2>
-    <p>Diese Erklärung wird regelmäßig überarbeitet, insbesondere bei Gesetzesänderungen oder technischen Erweiterungen.
-    </p>
-
-    <hr style="margin-top:3rem;">
-    <p style="color:#888;font-size:0.85rem;text-align:center;">
-        BHAK &amp; BHAS Steyr · Leopold-Werndl-Straße 7, 4400 Steyr
-    </p>
-
 </body>
 
 </html>
