@@ -904,6 +904,7 @@ select {
   font-family: inherit;
   margin-bottom: 6px;
   outline: none !important;
+  resize: none;
 }
 
 /* ─── Modern Modal V2 ───────────────────────────────────────────────────── */
@@ -2162,3 +2163,125 @@ select {
     max-width: 140px;
   }
 }
+
+/* ─── Matura Toggle ─────────────────────────────────────────────────────── */
+.matura-toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.matura-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.matura-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: #555;
+}
+
+.matura-btn.active {
+  background: rgba(0, 173, 239, 0.08);
+  border-color: #00adef;
+  color: #00adef;
+}
+
+@media (max-width: 640px) {
+  .matura-btn span {
+    display: none;
+  }
+
+  .matura-btn {
+    padding: 6px 8px;
+  }
+}
+
+.matura-btn i {
+  transition: transform 0.3s ease;
+}
+
+.matura-btn.active i {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* ─── Thought Block (Fake Thinking) ─────────────────────────────────────── */
+.thought-block {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  max-width: fit-content;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thought-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.thought-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+}
+
+.thought-header i {
+  transition: transform 0.2s;
+}
+
+.thought-block.expanded .thought-header i.chevron {
+  transform: rotate(180deg);
+}
+
+.thought-content {
+  padding: 8px 12px 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: none;
+  font-style: italic;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.thought-block.expanded .thought-content {
+  display: block;
+}
+
+.thought-timer {
+  font-family: monospace;
+  opacity: 0.7;
+}
+
+/* Tooltip adjustment if needed or just use title attribute */

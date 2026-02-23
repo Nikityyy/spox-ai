@@ -43,6 +43,7 @@ $chatUuid   = !empty($body['chat_uuid']) ? sanitize_uuid($body['chat_uuid']) : g
 $projectUuid = !empty($body['project_uuid']) ? sanitize_uuid($body['project_uuid']) : null;
 $history     = $body['history'] ?? [];
 $fileNames   = $body['files'] ?? []; // Array of filenames to attach
+$maturaMode  = !empty($body['matura_mode']) && $body['matura_mode'] === true;
 
 $projectId = null;
 if ($projectUuid && $userId) {
@@ -151,7 +152,7 @@ for ($k = 0; $k < count($apiKeys); $k++) {
         
         try {
             $cachedContentName = null;
-            $geminiMessages = build_gemini_messages($userId, $chatUuid, $history, $message, $ragContext, $fileNames, $cachedContentName, $projectId);
+            $geminiMessages = build_gemini_messages($userId, $chatUuid, $history, $message, $ragContext, $fileNames, $cachedContentName, $projectId, $maturaMode);
 
             $fullResponse = stream_gemini($geminiMessages, function(string $token) {
                 send_sse(['type' => 'token', 'text' => $token]);
@@ -245,21 +246,21 @@ function save_message(string $chatUuid, string $sender, string $content): ?strin
 
 // ─── Gemini Cache Management ──────────────────────────────────────────────────
 
-function get_or_create_gemini_cache(string $model): ?string {
+function get_or_create_gemini_cache(string $model, string $prompt, string $cacheKey = 'system_prompt'): ?string {
     $apiKeys = GEMINI_API_KEYS;
     $apiKey  = $apiKeys[0]; // Baseline key for cache management
-    $promptPath = __DIR__ . '/../data/system_prompt.txt';
-    if (!file_exists($promptPath)) return null;
-    $systemPrompt = file_get_contents($promptPath);
+    
+    // Hash the prompt to identify if it changed
+    $promptHash = md5($prompt);
 
     try {
-        // Check for active cache in DB
+        // Check for active cache in DB with same hash
         // Use a 10-minute buffer before expiration
         $cache = DB::query(
             "SELECT cache_name FROM gemini_caches 
-             WHERE model = ? AND expire_time > DATE_ADD(NOW(), INTERVAL 10 MINUTE) 
+             WHERE model = ? AND prompt_hash = ? AND expire_time > DATE_ADD(NOW(), INTERVAL 10 MINUTE) 
              ORDER BY created_at DESC LIMIT 1",
-            [$model]
+            [$model, $promptHash]
         )->fetch();
 
         if ($cache) return $cache['cache_name'];
@@ -269,7 +270,7 @@ function get_or_create_gemini_cache(string $model): ?string {
         $payload = [
             'model' => "models/{$model}",
             'systemInstruction' => [
-                'parts' => [['text' => $systemPrompt]]
+                'parts' => [['text' => $prompt]]
             ],
             'ttl' => '3600s' // 1 hour
         ];
@@ -297,8 +298,8 @@ function get_or_create_gemini_cache(string $model): ?string {
                 $mysqlTime = $dt->format('Y-m-d H:i:s');
 
                 DB::query(
-                    "INSERT INTO gemini_caches (cache_name, model, display_name, expire_time) VALUES (?, ?, ?, ?)",
-                    [$cacheName, $model, 'SpoX+ System Prompt', $mysqlTime]
+                    "INSERT INTO gemini_caches (cache_name, model, display_name, expire_time, prompt_hash) VALUES (?, ?, ?, ?, ?)",
+                    [$cacheName, $model, "SpoX+ $cacheKey", $mysqlTime, $promptHash]
                 );
                 return $cacheName;
             }
@@ -312,14 +313,24 @@ function get_or_create_gemini_cache(string $model): ?string {
     return null;
 }
 
-function build_gemini_messages(int|null $userId, string $chatUuid, array $history, string $newMessage, string $ragContext, array $fileNames = [], ?string &$cachedContentName = null, ?int $projectId = null): array {
-    $model = GEMINI_MODELS[0]; // Logic might need adjustment if rotation affects caching
-    $cachedContentName = get_or_create_gemini_cache($model);
-
-    $systemPrompt = "";
-    if (!$cachedContentName) {
-        $promptPath = __DIR__ . '/../data/system_prompt.txt';
-        $systemPrompt = file_exists($promptPath) ? file_get_contents($promptPath) : "Du bist SpoX+ AI.";
+function build_gemini_messages(int|null $userId, string $chatUuid, array $history, string $newMessage, string $ragContext, array $fileNames = [], ?string &$cachedContentName = null, ?int $projectId = null, bool $maturaMode = false): array {
+    $model = GEMINI_MODELS[0]; 
+    
+    // 1. Load Base Prompt (Identity, Tone, Rules)
+    $basePath = __DIR__ . '/../data/system_prompt.txt';
+    $systemPrompt = file_exists($basePath) ? file_get_contents($basePath) : "Du bist SpoX+ AI.";
+    
+    // 2. If Matura Mode, append Matura Context from file
+    if ($maturaMode) {
+        $maturaPath = __DIR__ . '/../data/matura_context.txt';
+        if (file_exists($maturaPath)) {
+            $systemPrompt .= "\n\n" . file_get_contents($maturaPath);
+        }
+        
+        // Use context caching only for the heavy Matura prompt
+        $cachedContentName = get_or_create_gemini_cache($model, $systemPrompt, 'matura_prompt');
+    } else {
+        $cachedContentName = null;
     }
 
     if ($ragContext) {

@@ -10,6 +10,21 @@ const Chat = {
     attachedFiles: [], // Local state for files waiting to be sent
     isStreaming: false,
     abortController: null,
+    isMaturaMode: false,
+    thinkingInterval: null,
+    thinkingStartTime: null,
+    thinkingSentences: [
+        "Analysiere Aufgabenstellung...",
+        "Suche nach relevanten Matura-Beispielen...",
+        "Strukturiere Lösungsweg...",
+        "Prüfe mathematische Genauigkeit...",
+        "Formuliere verständliche Erklärung...",
+        "Rufe Sport-Biologie Daten ab...",
+        "Vergleiche mit Lehrplan-Standards...",
+        "Optimiere Antwort für Matura-Niveau...",
+        "Bereite Grafiken und Diagramme im Geist vor...",
+        "Checke physiologische Zusammenhänge..."
+    ],
 
     SUGGESTIONS: [
         {
@@ -344,7 +359,7 @@ const Chat = {
         if (!this.currentUuid) {
             this.currentUuid = Storage.generateUUID();
             // Create chat in sidebar
-            const newChat = { uuid: this.currentUuid, title: text.slice(0, 60), last_updated: Date.now(), messages: [] };
+            const newChat = { uuid: this.currentUuid, title: text.slice(0, 60), last_updated: Date.now(), messages: [], matura_mode: this.isMaturaMode };
             if (!Profile.user) {
                 Storage.upsertChat(newChat);
             }
@@ -380,10 +395,10 @@ const Chat = {
             }
         }
 
-        // Show typing indicator
-        const typingEl = this.createTypingIndicator();
-        container.appendChild(typingEl);
-        this.scrollToBottom();
+        // Show thinking indicator instead of typing dots
+        const thinkingEl = this.createThinkingIndicator();
+        container.appendChild(thinkingEl);
+        this.startThinkingTimer(thinkingEl);
 
         // Stream response
         this.isStreaming = true;
@@ -406,6 +421,7 @@ const Chat = {
                     project_uuid: this.currentProjectId,
                     history,
                     files: fileData.map(f => f.filename), // Send filenames to API
+                    matura_mode: this.isMaturaMode
                 }),
                 signal: this.abortController.signal
             });
@@ -436,8 +452,11 @@ const Chat = {
 
                         if (event.type === 'token') {
                             tokenCount++;
-                            // Remove typing indicator on first token
-                            if (typingEl.parentNode) typingEl.remove();
+                            // Remove thinking indicator on first token
+                            if (thinkingEl && thinkingEl.parentNode) {
+                                this.stopThinkingTimer();
+                                thinkingEl.remove();
+                            }
 
                             if (!botBubble) {
                                 const row = document.createElement('div');
@@ -454,10 +473,13 @@ const Chat = {
                             if (event.text.includes('$') || event.text.includes(']') || event.text.includes(')')) {
                                 this.renderMath(botBubble);
                             }
-                            this.scrollToBottom();
+                            // REMOVED: this.scrollToBottom(); - User wants no auto-scroll
 
                         } else if (event.type === 'error') {
-                            if (typingEl.parentNode) typingEl.remove();
+                            if (thinkingEl && thinkingEl.parentNode) {
+                                this.stopThinkingTimer();
+                                thinkingEl.remove();
+                            }
                             const row = document.createElement('div');
                             row.className = 'message-row assistant';
                             const bubble = document.createElement('div');
@@ -557,25 +579,58 @@ const Chat = {
         }
     },
 
-    createTypingIndicator() {
+    createThinkingIndicator() {
         const row = document.createElement('div');
         row.className = 'message-row assistant';
         row.innerHTML = `
-      <div class="typing-indicator">
-        <div class="typing-dots">
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-        </div>
-        <span style="margin-left:6px;font-size:12px;color:var(--text-muted);">SpoX+AI schreibt…</span>
-      </div>
-    `;
+            <div class="thought-block" id="active-thought-block">
+                <div class="thought-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <i data-lucide="chevron-down" class="chevron" style="width:14px; height:14px;"></i>
+                    <span>Nachdenken für <span class="thought-timer" id="thought-timer">0.0s</span></span>
+                </div>
+                <div class="thought-content" id="thought-sentences">
+                    Analysiere Anfrage...
+                </div>
+            </div>
+        `;
+        if (window.lucide) {
+            setTimeout(() => lucide.createIcons({ props: { "data-lucide": true }, nameAttr: "data-lucide", attrs: { style: "width:14px; height:14px;" }, root: row }), 10);
+        }
         return row;
+    },
+
+    startThinkingTimer(el) {
+        this.thinkingStartTime = Date.now();
+        const timerEl = el.querySelector('#thought-timer');
+        const sentencesEl = el.querySelector('#thought-sentences');
+
+        let sentenceIdx = 0;
+        this.thinkingInterval = setInterval(() => {
+            const elapsed = ((Date.now() - this.thinkingStartTime) / 1000).toFixed(1);
+            if (timerEl) timerEl.textContent = elapsed + 's';
+
+            // Cycle sentences every 2.5 seconds
+            if (Math.floor(elapsed * 10) % 25 === 0 && elapsed > 0) {
+                sentenceIdx = (sentenceIdx + 1) % this.thinkingSentences.length;
+                if (sentencesEl) sentencesEl.textContent = this.thinkingSentences[sentenceIdx];
+            }
+        }, 100);
+    },
+
+    stopThinkingTimer() {
+        if (this.thinkingInterval) {
+            clearInterval(this.thinkingInterval);
+            this.thinkingInterval = null;
+        }
     },
 
     scrollToBottom() {
         const area = document.getElementById('chat-area');
-        area.scrollTop = area.scrollHeight;
+        // Only scroll if we are already near the bottom or if it's not a streaming message
+        const isNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
+        if (isNearBottom || !this.isStreaming) {
+            area.scrollTop = area.scrollHeight;
+        }
     },
 
     copyMessage(btn) {
@@ -657,6 +712,16 @@ const Chat = {
             };
             fileInput.click();
         });
+
+        // Matura Toggle
+        const maturaBtn = document.getElementById('matura-btn');
+        if (maturaBtn) {
+            maturaBtn.addEventListener('click', () => {
+                this.isMaturaMode = !this.isMaturaMode;
+                maturaBtn.classList.toggle('active', this.isMaturaMode);
+                UI.toast(this.isMaturaMode ? 'Matura-Modus aktiviert' : 'Matura-Modus deaktiviert', 'info');
+            });
+        }
     },
 
     async uploadFile(file, overrideProjectUuid = null, onSuccess = null) {

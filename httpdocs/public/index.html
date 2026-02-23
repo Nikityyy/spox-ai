@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/app.css?v=1.1">
 </head>
 
 <body>
@@ -88,6 +88,13 @@
           <div class="header-title" id="header-title">SpoX+ AI</div>
         </div>
         <div class="header-actions" id="header-actions">
+          <div class="matura-toggle-container">
+            <button class="matura-btn" id="matura-btn"
+              title="Aktiviere den Matura-Modus für vertiefte Vorbereitung und spezifische Aufgabenstellungen.">
+              <i data-lucide="graduation-cap" style="width:16px; height:16px;"></i>
+              <span>Matura Üben</span>
+            </button>
+          </div>
           <button class="login-btn" id="login-btn" style="display:none;">Anmelden</button>
           <button class="profile-btn" id="profile-btn" style="display:none;" title="Profil">N</button>
           <!-- Profile Dropdown -->
@@ -237,14 +244,14 @@
   <div id="toast-container"></div>
 
   <!-- ─── JS Modules ────────────────────────────────────────────────────────── -->
-  <script src="/js/storage.js"></script>
-  <script src="/js/sync.js"></script>
-  <script src="/js/ui.js"></script>
-  <script src="/js/profile.js"></script>
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/chat.js"></script>
-  <script src="/js/projects.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/storage.js?v=1.1"></script>
+  <script src="/js/sync.js?v=1.1"></script>
+  <script src="/js/ui.js?v=1.1"></script>
+  <script src="/js/profile.js?v=1.1"></script>
+  <script src="/js/sidebar.js?v=1.1"></script>
+  <script src="/js/chat.js?v=1.1"></script>
+  <script src="/js/projects.js?v=1.1"></script>
+  <script src="/js/app.js?v=1.1"></script>
 
   <!-- Marked (Markdown Parser) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

@@ -77,9 +77,18 @@ try {
             cache_name VARCHAR(255) NOT NULL,
             model VARCHAR(128) NOT NULL,
             display_name VARCHAR(128) NOT NULL,
+            prompt_hash VARCHAR(32) NULL,
             expire_time TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_prompt_hash (prompt_hash)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } else {
+        // Migration for existing table
+        $checkCacheHash = $db->query("SHOW COLUMNS FROM gemini_caches LIKE 'prompt_hash'")->fetch();
+        if (!$checkCacheHash) {
+            $db->query("ALTER TABLE gemini_caches ADD COLUMN prompt_hash VARCHAR(32) NULL AFTER display_name");
+            $db->query("CREATE INDEX idx_gemini_caches_prompt_hash ON gemini_caches (prompt_hash)");
+        }
     }
 } catch (Throwable $e) { 
     // Log to error_logs for debugging
