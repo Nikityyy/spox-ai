@@ -466,8 +466,8 @@ select {
 }
 
 .text-styled {
-  color: #00adef;
-  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
+  color: #994866;
+  filter: drop-shadow(0 0 10px rgba(153, 72, 102, 0.3));
 }
 
 .home-hero-title {
