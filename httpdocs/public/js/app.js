@@ -200,7 +200,7 @@ const App = {
         <div class="settings-item">
           <div>
             <div>Entwickler</div>
-            <div class="settings-item-label">Entwickelt von <a href="https://nikityyy.github.io/" target="_blank" style="color:var(--accent);text-decoration:underline;">Nikita Berger</a> mit Hilfe von Lara Sophia Harant (UI und UX Design), Laura Gere (Promotion), Sandro Samuel Bramberger (Feedbackanalyse) und Felix Kühhas (Rechtliche Grundlagen)</div>
+            <div class="settings-item-label">Entwickelt von <a href="https://nikityyy.github.io/" target="_blank" style="color:var(--accent);text-decoration:underline;">Nikita Berger</a> mit Hilfe von Lara Harant (UI und UX Design), Laura Gere (Promotion), Sandro Samuel Bramberger (Feedbackanalyse) und Felix Kühhas (Rechtliche Grundlagen)</div>
           </div>
         </div>
       </div>

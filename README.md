@@ -39,7 +39,7 @@ Die vollständige Anleitung findest du im ausführlichen Dokument:
 ## Mitwirkende
 
 Entwickelt von **[Nikita Berger](https://nikityyy.github.io/)** mit Unterstützung von:
-- **Lara Sophia Harant**: UI & UX Design
+- **Lara Harant**: UI & UX Design
 - **Laura Gere**: Promotion
 - **Sandro Samuel Bramberger**: Feedbackanalyse
 - **Felix Kühhas**: Rechtliche Grundlagen
